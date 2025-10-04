@@ -1,13 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const AIGenerator = () => {
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -16,13 +18,45 @@ const AIGenerator = () => {
     }
 
     setGenerating(true);
+    setGeneratedImage(null);
     
-    // Simulate generation (will be replaced with actual AI integration)
-    setTimeout(() => {
-      toast.success("Your custom lion wallpaper is being generated!");
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-wallpaper', {
+        body: { prompt }
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        setGeneratedImage(data.imageUrl);
+        toast.success("Your lion wallpaper has been generated!");
+      } else {
+        throw new Error("No image was generated");
+      }
+    } catch (error: any) {
+      console.error('Generation error:', error);
+      if (error.message?.includes('Rate limit')) {
+        toast.error("Rate limit exceeded. Please try again later.");
+      } else if (error.message?.includes('credits')) {
+        toast.error("AI credits exhausted. Please add credits to continue.");
+      } else {
+        toast.error("Failed to generate wallpaper. Please try again.");
+      }
+    } finally {
       setGenerating(false);
-      setPrompt("");
-    }, 2000);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!generatedImage) return;
+    
+    const link = document.createElement('a');
+    link.href = generatedImage;
+    link.download = `lion-wallpaper-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Wallpaper downloaded!");
   };
 
   const examplePrompts = [
@@ -103,16 +137,37 @@ const AIGenerator = () => {
 
             <div className="pt-4 flex items-center gap-2 text-sm text-muted-foreground border-t border-border">
               <Sparkles className="w-4 h-4 text-primary" />
-              <span>Powered by advanced AI technology</span>
+              <span>Powered by Lovable AI</span>
             </div>
           </div>
         </Card>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Generated wallpapers will appear in your gallery automatically
-          </p>
-        </div>
+        {generatedImage && (
+          <div className="mt-8 animate-in fade-in slide-in-from-bottom-4">
+            <Card className="p-4 bg-card/80 backdrop-blur-sm border-border/50">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Your Generated Wallpaper</h3>
+                  <Button
+                    variant="royal"
+                    size="sm"
+                    onClick={handleDownload}
+                  >
+                    <Download />
+                    Download
+                  </Button>
+                </div>
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+                  <img
+                    src={generatedImage}
+                    alt="Generated lion wallpaper"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </section>
   );
