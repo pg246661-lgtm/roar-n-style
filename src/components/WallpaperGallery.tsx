@@ -4,8 +4,14 @@ import lion2 from "@/assets/lion-2.jpg";
 import lion3 from "@/assets/lion-3.jpg";
 import lion4 from "@/assets/lion-4.jpg";
 import lion5 from "@/assets/lion-5.jpg";
+import lionDark1 from "@/assets/lion-dark-1.jpg";
 
 const wallpapers = [
+  {
+    image: lionDark1,
+    title: "Midnight Sovereign",
+    category: "Dark",
+  },
   {
     image: lion1,
     title: "Roaring Majesty",
